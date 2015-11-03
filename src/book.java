@@ -125,9 +125,12 @@ public class book implements BookInterface{
                 i++;
             }
             //System.out.println("Number of different books present in the library are: "+ n_books);
+            workbook.close();
+            excel_file.close();
         }catch(IOException e){
             System.out.println("Excel file not found");
         }
+
 
     }
 }
