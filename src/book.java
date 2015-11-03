@@ -1,7 +1,9 @@
 
 
 import java.awt.print.Book;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.*;
 import java.util.Iterator;
@@ -11,6 +13,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 
 interface BookInterface {
@@ -66,8 +70,11 @@ public class book implements BookInterface{
     public static void main(String []args){
         int n_books=0;
         try {
+
             FileInputStream excel_file = new FileInputStream("BooksInfo.xlsx");
             Workbook workbook = new XSSFWorkbook(excel_file);
+            //Workbook workbook = new HSSFWorkbook(excel_file);
+
             Sheet FirstSheet = workbook.getSheetAt(0);
 
             n_books = FirstSheet.getLastRowNum();
@@ -77,7 +84,6 @@ public class book implements BookInterface{
                 Books[j] = new book();
             }
             int i=0;
-
             Iterator<Row> rowIterator = FirstSheet.iterator();
             Row nextRow = rowIterator.next();   // Ignore first row
             //nextRow = rowIterator.next();
@@ -92,16 +98,22 @@ public class book implements BookInterface{
                         case Cell.CELL_TYPE_STRING:
                             n_attributes++;
                             if(n_attributes==1){
-                                //System.out.println(cell.getStringCellValue());
                                 Books[i].SetBookName(cell.getStringCellValue());
                             }else if(n_attributes==2){
-                                //System.out.println(cell.getStringCellValue());
                                 Books[i].SetAuthorName(cell.getStringCellValue());
                             }else if(n_attributes==5){
-                                //System.out.println(cell.getStringCellValue());
+
+                                File file = new File("BooksInfo.xlsx");
+                                FileOutputStream excel_file_1 = new FileOutputStream(file);
                                 if(Books[i].NumberOfCopies<=0){
                                     cell.setCellValue("N");
+                                }else{
+                                    cell.setCellValue("Y");
                                 }
+                                workbook.write(excel_file_1);
+                                excel_file_1.flush();
+                                excel_file_1.close();
+
                                 Books[i].SetBookStatus((cell.getStringCellValue()).charAt(0));
                                 n_attributes=0;
                             }
@@ -109,10 +121,8 @@ public class book implements BookInterface{
                         case Cell.CELL_TYPE_NUMERIC:
                             n_attributes++;
                             if(n_attributes==3){
-                                //System.out.println(cell.getNumericCellValue());
                                 Books[i].SetYearOfPublication((int) cell.getNumericCellValue());
                             }else if(n_attributes==4){
-                                //System.out.println(cell.getNumericCellValue());
                                 Books[i].SetNumberOfCopies((int)cell.getNumericCellValue());
                             }
                             break;
@@ -124,12 +134,28 @@ public class book implements BookInterface{
                 System.out.println(Books[i].toString());
                 i++;
             }
-            //System.out.println("Number of different books present in the library are: "+ n_books);
-            workbook.close();
+            //workbook.close();
             excel_file.close();
+            /*
+            try {
+                File file = new File("BooksInfo.xlsx");
+                FileOutputStream excel_file_1 = new FileOutputStream(file);
+                Cell cell = null;
+                cell = FirstSheet.getRow(temp_row).getCell(temp_cell);
+                cell.setCellValue("N");
+                workbook.write(excel_file_1);
+                excel_file_1.flush();
+                excel_file_1.close();
+            }catch (IOException e){
+                System.out.println("Excel file not found while writing");
+            }
+            */
+            workbook.close();
+
         }catch(IOException e){
             System.out.println("Excel file not found");
         }
+
 
 
     }

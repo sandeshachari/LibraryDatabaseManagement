@@ -15,7 +15,7 @@ public class Library {
 
 
         /* Give Options after successful login
-        *  1. Get User Status           2. Issue a book             */
+        *  1. Get User Status           2. Issue a book         3. Return a book    */
 
 
 
