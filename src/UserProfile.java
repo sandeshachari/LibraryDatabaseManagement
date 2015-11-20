@@ -1,10 +1,19 @@
-
+/*
 import com.sun.istack.internal.Nullable;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+*/
+
+import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 
 import java.io.File;
@@ -15,40 +24,141 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Scanner;
 
-
 interface UserInterface{
-    String GetUserName();
-    String GetUserPassword();
+    //String GetUserName();
+    void RegisterNewUser(String user_name, String user_password, Object O);
+    void DeleteUser(String user_name);
+    String GetUserPassword(String user_name);
+    void ChangeUserPassword(String user_name);
     void SetUserName(String username);
     void SetUserPassword(String password);
-    //String GetUserStatus(String user_name);
-    //void IssueBook(String user_name,String []book_name, int n_books);
-    //void ReturnBook(String user_name,String []book_name,int n_books);
-
-
-}
-
-interface LambdaExpression{
-    boolean checkBlanks(boolean b,String s);
+    void GetUserStatus(String user_name);
+    void IssueBook(String user_name,String book_name);
+    void ReturnBook(String user_name,String book_nam);
 }
 
 
-
-public class UserProfile implements UserInterface,LambdaExpression {
-    String username;
-    String password;
+public class UserProfile implements UserInterface{
+    public String username;
+    public String password;
     int maxBooksAllowed = 5;
-    String []books = new String[maxBooksAllowed];
-
-    boolean BlankOrNull;
-    String PossibleBlankString;
-
+    /*
     public String GetUserName(){
         return this.username;
     }
-    public String GetUserPassword(){
-        return this.password;
+    */
+    public void DeleteUser(String user_name){
+        Connection conn = null;
+        Statement stmt = null;
+        try {
+            Class.forName("org.sqlite.JDBC");
+            conn = DriverManager.getConnection("jdbc:sqlite:test.db");
+            stmt = conn.createStatement();
+            stmt.setQueryTimeout(30); // Set Timeout of 30 sec
+            System.out.println("Are you sure you want to delte your account? 1. Yes     2. No");
+            Scanner scanIn = new Scanner(System.in);
+            int confirmation = scanIn.nextInt();
+            if(confirmation==1) {
+                stmt.executeUpdate("delete from UserInfo where UserId = " + "'" + user_name + "'");
+                stmt.executeUpdate("delete from UserBooksInfo where UserId = " + "'" + user_name + "'");
+                System.out.println("Your have been removed from database successfully!");
+            }
+
+            conn.close();
+        }catch (SQLException se){
+            se.printStackTrace();
+            System.out.println("Entered in SQLException");
+        }catch(ClassNotFoundException ce){
+            ce.printStackTrace();
+            System.out.println("Entered in ClassNotFoundException");
+        }
     }
+
+    public void RegisterNewUser(String user_name, String user_password, Object O){
+        Connection conn = null;
+        Statement stmt = null;
+        try {
+            Class.forName("org.sqlite.JDBC");
+            conn = DriverManager.getConnection("jdbc:sqlite:test.db");
+            stmt = conn.createStatement();
+            stmt.setQueryTimeout(30); // Set Timeout of 30 sec
+
+
+            stmt.executeUpdate("insert into UserInfo values("+"'"+user_name+"'"+","+"'"+user_password+"'"+","+"'" + O + "'" + ")");
+            stmt.executeUpdate("insert into UserBooksInfo values("+"'"+user_name+"'"+"," +null+","+null+"," + null + "," + null + "," + null + ")");
+
+            ResultSet rs1 = stmt.executeQuery("select Password from UserInfo where UserId = "+"'"+user_name+"'");
+            while(rs1.next()){
+                //System.out.println("Your password is: "+rs1.getString("Password"));
+                String currentPassword =rs1.getString("Password");
+                rs1.close();
+            }
+
+        }catch (SQLException se){
+            se.printStackTrace();
+            System.out.println("Entered in SQLException");
+        }catch(ClassNotFoundException ce){
+            ce.printStackTrace();
+            System.out.println("Entered in ClassNotFoundException");
+        }
+    }
+
+    public String GetUserPassword(String user_name){
+        Connection conn = null;
+        Statement stmt = null;
+        try {
+            Class.forName("org.sqlite.JDBC");
+            conn = DriverManager.getConnection("jdbc:sqlite:test.db");
+            stmt = conn.createStatement();
+            stmt.setQueryTimeout(30); // Set Timeout of 30 sec
+
+            ResultSet rs1 = stmt.executeQuery("select Password from UserInfo where UserId = "+"'"+user_name+"'");
+            while(rs1.next()){
+                //System.out.println("Your password is: "+rs1.getString("Password"));
+                String currentPassword =rs1.getString("Password");
+                rs1.close();
+                return currentPassword;
+            }
+
+        }catch (SQLException se){
+            se.printStackTrace();
+            System.out.println("Entered in SQLException");
+        }catch(ClassNotFoundException ce){
+            ce.printStackTrace();
+            System.out.println("Entered in ClassNotFoundException");
+        }
+        return "PasswordNotFound";
+    }
+
+    public void ChangeUserPassword(String user_name){
+        Connection conn = null;
+        Statement stmt = null;
+        String get_user_password;
+        try {
+            Class.forName("org.sqlite.JDBC");
+            conn = DriverManager.getConnection("jdbc:sqlite:test.db");
+            stmt = conn.createStatement();
+            stmt.setQueryTimeout(30); // Set Timeout of 30 sec
+            System.out.println("Enter old password");
+            Scanner scanIn = new Scanner(System.in);
+            if(scanIn.next().equals(this.GetUserPassword(user_name))){
+                System.out.println("Enter new Password");
+                stmt.executeUpdate("update UserInfo set Password = "+"'"+scanIn.next()+"'"+ " where UserId = " + "'" + user_name + "'");
+                System.out.println("Password updated successfully!");
+            }else{
+                System.out.println("Password does not matched");
+            }
+            //scanIn.close();
+            conn.close();
+        }catch (SQLException se){
+            se.printStackTrace();
+            System.out.println("Entered in SQLException");
+        }catch(ClassNotFoundException ce){
+            ce.printStackTrace();
+            System.out.println("Entered in ClassNotFoundException");
+        }
+    }
+
     public void SetUserName(String username){
         this.username = username;
     }
@@ -69,265 +179,300 @@ public class UserProfile implements UserInterface,LambdaExpression {
     }
 
 
-    /* There are three operations
-     * 1. Get User Status
-     * 2. Issue User Book
-     * 3. Return Book From User
-     * Each operation requires to get at the respective row in excel database.
-     * So this operation should be common in code which will return the current row index and
-     * retain the excel file open to write or to read
-    */
+    public void GetUserStatus(String user_name){
+        Connection conn = null;
+        Statement stmt = null;
+        try {
+            Class.forName("org.sqlite.JDBC");
+            conn = DriverManager.getConnection("jdbc:sqlite:test.db");
+            stmt = conn.createStatement();
+            stmt.setQueryTimeout(30); // Set Timeout of 30 sec
 
-   /* (LambdaExpression ->
-    //public static boolean something (){
-
-        if (cellIterator.hasNext()) {
-            if (!(nextRow.getCell(cell.getColumnIndex() + 1).getStringCellValue().equals(""))) {
-                return true;
-            } else {
-                return false;
+            ResultSet rs1 = stmt.executeQuery("select * from UserBooksInfo where UserId = "+"'"+user_name+"'");
+            while(rs1.next()){
+                System.out.print("1. "+ rs1.getString("Book1")+"\t\t");
+                System.out.print("2. "+ rs1.getString("Book2")+"\t\t");
+                System.out.print("3. "+ rs1.getString("Book3")+"\t\t");
+                System.out.print("4. " + rs1.getString("Book4") + "\t\t");
+                System.out.print("5. " + rs1.getString("Book5"));
             }
-        } else {
-            return false;
+            rs1.close();
+            conn.close();
+        }catch (SQLException se){
+            se.printStackTrace();
+            System.out.println("Entered in SQLException");
+        }catch(ClassNotFoundException ce){
+            ce.printStackTrace();
+            System.out.println("Entered in ClassNotFoundException");
+        }
+    }
+    public void IssueBook(String user_name,String book_name){
+        boolean fHaveBook = false;
+        Connection conn = null;
+        Statement stmt = null;
+        try {
+            Class.forName("org.sqlite.JDBC");
+            conn = DriverManager.getConnection("jdbc:sqlite:test.db");
+            stmt = conn.createStatement();
+            stmt.setQueryTimeout(30); // Set Timeout of 30 sec
+
+            ResultSet rs2 = stmt.executeQuery("select * from UserBooksInfo where UserId = " + "'" + user_name + "'");
+            while (rs2.next()) {
+                int i = 1;
+                //System.out.println("Username: " + rs2.getString("UserId"));
+                for (i = 1; i < (maxBooksAllowed + 1); i++) {
+                    //System.out.println("Book " + i + " : " + rs2.getString("Book" + i));
+                    if (rs2.getString("Book" + i) == null) {
+                        break;
+                    }
+                    if (rs2.getString("Book" + i).equals(book_name)) {
+                        fHaveBook = true;
+                    }
+                }
+                //System.out.println("Book having status: " + fHaveBook);
+                if (i < 6) {
+                    if (fHaveBook == true) {
+                        System.out.println("The book can't be issued as already have it.");
+                    } else {
+                        fHaveBook = false;
+                        stmt.executeUpdate("update UserBooksInfo set Book" + i + "=" + "'" + book_name + "'" + " where UserId = " + "'" + user_name + "'");
+                        System.out.println("Book issued successfully!");
+                    }
+                } else {
+                    System.out.println("You already have maximum number of books allowed. Return to Issue!");
+                }
+            }
+            rs2.close();
+            conn.close();
+        }catch (SQLException se){
+            se.printStackTrace();
+            System.out.println("Entered in SQLException");
+        }catch(ClassNotFoundException ce){
+            ce.printStackTrace();
+            System.out.println("Entered in ClassNotFoundException");
         }
 
-
-        System.out.println("Do something");
-        return true;
-    };)
-*/
-
-
-
-
-
-    public int UserCommonOperation(String user_name, String Operation, String book_name){
-        String operation = Operation ;
-        String dummyString=null;
+        }
+    public void ReturnBook(String user_name,String book_name){
+        int matchedBookIndex=0,lastBookIndex=0;
+        Connection conn = null;
+        Statement stmt = null;
         try {
-            FileInputStream excel_file_1 = new FileInputStream("UsersInfo.xlsx");
-            Workbook workbook_1 = new XSSFWorkbook(excel_file_1);
-            Sheet FirstSheet_1 = workbook_1.getSheetAt(0);
-
-            int n_users=0;
-            int rowNum=0;
-            int total_users = FirstSheet_1.getLastRowNum();
-
-            Iterator<Row> rowIterator = FirstSheet_1.iterator();
-            Row nextRow = rowIterator.next();   //Skip first row
-            while (rowIterator.hasNext()) {
-
-                int i = 0;
-                nextRow = rowIterator.next();
-                rowNum = nextRow.getRowNum();
-
-
-                Iterator<Cell> cellIterator = nextRow.iterator();
-                Cell cell = cellIterator.next(); //Skip first column
-                cell = cellIterator.next(); //Skip Second column
-                int lastColumnIndex = cell.getColumnIndex()+ 1 + maxBooksAllowed;
-                if ((!(cell.getStringCellValue().equals(user_name))) & (n_users < (total_users))) {
-                    n_users++;
-                    if (n_users == total_users) {
-                        System.out.println("\"Given user is not registered. Please register and try again.\"");
-                        return 0;
-                    } else {
-                        continue;
+            Class.forName("org.sqlite.JDBC");
+            conn = DriverManager.getConnection("jdbc:sqlite:test.db");
+            stmt = conn.createStatement();
+            stmt.setQueryTimeout(30); // Set Timeout of 30 sec
+            ResultSet rs2 = stmt.executeQuery("select * from UserBooksInfo where UserId = " + "'" + user_name + "'");
+            while (rs2.next()) {
+                int i = 1;
+                //System.out.println("Username: " + rs2.getString("UserId"));
+                for (i = 1; i <= maxBooksAllowed; i++) {
+                    //System.out.println("Book " + i + " : " + rs2.getString("Book" + i));
+                    if (rs2.getString("Book" + i) == null) {
+                        lastBookIndex = i-1;
+                        break;
+                    }else{
+                        lastBookIndex = 5;
                     }
+                    if (rs2.getString("Book" + i).equals(book_name)) {
+                        matchedBookIndex = i;
+                    }
+                }
+                System.out.println("matchedBookIndex: "+matchedBookIndex);
+                System.out.println("lastBookIndex: "+lastBookIndex);
+                if(matchedBookIndex==0){
+                    System.out.println("The book is not issued to you. Verify!");
                 }else{
-                    ArrayList<String> user_book_list = new ArrayList<>();
-                    cell = cellIterator.next(); //Skip third column
-                    switch (operation){
-                        case "Get_User_Status":
-                                while (cellIterator.hasNext()) {// & (!nextRow.getCell(cell.getColumnIndex()+1).getStringCellValue().equals(""))) {// & (!(cellIterator.next().getStringCellValue().equals("")))){
-                                    if (!(nextRow.getCell(cell.getColumnIndex() + 1).getStringCellValue().equals(""))) {
-                                        cell = cellIterator.next();
-                                        switch (cell.getCellType()) {
-                                            case Cell.CELL_TYPE_STRING:
-                                                user_book_list.add(cell.getStringCellValue());
-                                                break;
-                                            default:
-                                                System.out.println("You have entered in default case in Get_User_Status switch case");
-                                                return 0;
-                                            //break;
-                                        }
-                                    }else{
-                                        break;
-                                    }
-                                }
-                            for(String booknameString:  user_book_list){
-                                System.out.print(booknameString + "\t\t");
-                            }
-                           // break;
-                            return 1;
-                        case "Issue_Book":
-                            while (cell.getColumnIndex()!=lastColumnIndex) {
-                                if(cellIterator.hasNext()){
-                                    BlankOrNull = true;
-                                    PossibleBlankString = nextRow.getCell(cell.getColumnIndex() + 1).getStringCellValue();
-                                }else{
-                                    BlankOrNull = false;
-                                }
-                                if (cellIterator.hasNext() & checkBlanks(BlankOrNull,PossibleBlankString)){
-                                cell = cellIterator.next();
-                                System.out.println("Current cell content: " + cell.getStringCellValue());
-                                if (cell.getStringCellValue() != null) {
-                                    if (cell.getStringCellValue().compareTo(book_name) == 0) {
-                                        //if(cell.getStringCellValue().compareTo(book_name)==1){
-                                        System.out.println("Sorry the book can not be issued. You already have one copy of it");
-                                        return 0;
-                                        //break;
-                                    } else if ((cell.getColumnIndex() == (lastColumnIndex))) {
-                                        System.out.println("Sorry you already have maximum number of books issued. Pls return some to get some!");
-                                        return 0;
-                                        //break;
-                                    }
-                                }
-                            }else {
-                                        System.out.println("Now current column index: "+ cell.getColumnIndex());
-                                        try {
-                                            FileOutputStream fos = new FileOutputStream(new File("UsersInfo.xlsx"));
-                                            int tempCellIndex = cell.getColumnIndex()+1;
-                                            cell = FirstSheet_1.getRow(nextRow.getRowNum()).getCell(tempCellIndex);
-                                            if(cell == null){
-                                                cell = nextRow.createCell(tempCellIndex);
-                                            }
-                                            cell.setCellValue(book_name);
-                                            workbook_1.write(fos);
-                                            fos.close();
-                                            return  1;
-                                        } catch (IOException e) {
-                                            System.out.println("Entered in IOException while writing excel file");
-                                            return 0;
-                                        }
-                                    }
-                            }
-                            break;
-
-                        case "Return_Book":
-                            while (cellIterator.hasNext()){// | (!nextRow.getCell(cell.getColumnIndex()+1).getStringCellValue().equals(""))) {
-                                cell = cellIterator.next();
-                                if (cell.getStringCellValue().compareTo(book_name) != 0) {
-                                    //Do Something
-                                } else {
-                                    switch (cell.getCellType()) {
-                                        case Cell.CELL_TYPE_STRING:
-                                            for(int k=cell.getColumnIndex();k<(lastColumnIndex+1);k++){
-                                                if(cellIterator.hasNext()){
-                                                    cell.setCellValue(nextRow.getCell(k+1).getStringCellValue());
-                                                    cell = cellIterator.next();
-                                                    System.out.println("k value: " + k);
-                                                }else{
-
-                                                    //nextRow.removeCell(nextRow.getCell(k));
-                                                    cell = nextRow.createCell(k);
-                                                    //System.out.println("k value: " + k);
-                                                    cell.setCellType(Cell.CELL_TYPE_STRING);
-                                                    cell.setCellValue(dummyString);
-                                                    cell = nextRow.getCell(k,Row.RETURN_BLANK_AS_NULL);
-                                                    //System.out.println("Printing value: "+cell.getStringCellValue());
-                                                    System.out.println("It should return 1");
-                                                    break;
-                                                }
-                                            }
-                                            //workbook_1.write(fos);
-                                            excel_file_1.close();
-                                            FileOutputStream fos = new FileOutputStream(new File("UsersInfo.xlsx"));
-                                            workbook_1.write(fos);
-                                            fos.close();
-                                            System.out.println("It should return 1 at the end");
-                                            return 1;
-                                            //break;
-                                        default:
-                                            System.out.println("You have entered in default case in Issue_Book switch case");
-                                            return 0;
-                                            //break;
-                                    }
-                                }
-                            }
-                            break;
-                        default:
-                            System.out.println("Something went terribly wrong");
-                            return 0;
-                            //break;
+                    if(i==5){
+                        stmt.executeUpdate("update UserBooksInfo set Book5 =" + null + " where  UserId = " + "'" + user_name + "'");
+                    }else{
+                        for (int j=matchedBookIndex;j<lastBookIndex;j++){
+                            ResultSet rs = stmt.executeQuery("select Book" + (j+1) + " from UserBooksInfo where UserId = " + "'" + user_name + "'");
+                            stmt.executeUpdate("update UserBooksInfo set Book"+j+"="+"'"+rs.getString("Book"+(j+1))+"'"+"where UserId = "+ "'" + user_name + "'");
+                        }
+                        stmt.executeUpdate("update UserBooksInfo set Book"+lastBookIndex+"="+ null+" where  UserId = "+ "'" + user_name + "'");
                     }
                 }
             }
-            excel_file_1.close();
-            workbook_1.close();
-        }catch(IOException e){
-            System.out.println("Program entered in IOException");
-            return 0;
+
+            //ResultSet rs3 = stmt.executeQuery("select * from UserBooksInfo where UserId = " + "'" + user_name + "'");
+            rs2.close();
+            conn.close();
+        }catch (SQLException se){
+            se.printStackTrace();
+            System.out.println("Entered in SQLException");
+        }catch(ClassNotFoundException ce){
+            ce.printStackTrace();
+            System.out.println("Entered in ClassNotFoundException");
         }
-        return 1;
+
     }
 
-
-    public static void main(String []args){
+    public static void main(String []args) {
         String tempUserName;
         int operation;
-        String operationString=null;
         String bookname;
         int bookOption;
-        String bookOptionString=null;
+        String bookOptionString = null;
+        boolean userExist=false, passwordMatched=false;
+
 
         UserProfile userProfile = new UserProfile();
 
-        if(1==1){
-        System.out.println("Enter user name");
-        Scanner scanIn = new Scanner(System.in);
-        tempUserName = scanIn.next();
-        System.out.println("Enter the option 1.Get Status 2. Issue Book 3. Return Book");
-        operation = scanIn.nextInt();
-        switch(operation){
-            case 1:
-                operationString = "Get_User_Status";
-                userProfile.UserCommonOperation(tempUserName,operationString,null);
-                break;
-            case 2:
-                operationString = "Issue_Book";
-                System.out.println("Enter the option to issue book 1. Inferno 2. Deception Point 3. The Lost Symbol 4. Mein Kamf 5. Open");
-                bookOption = scanIn.nextInt();
-                switch(bookOption){
-                    case 1: bookOptionString = "Inferno"; break;
-                    case 2: bookOptionString = "Deception Point"; break;
-                    case 3: bookOptionString = "The Lost Symbol"; break;
-                    case 4: bookOptionString = "Mein Kamf"; break;
-                    case 5: bookOptionString = "Open"; break;
-                    default: System.out.println("You have entered wrong book option"); break;
-                }
-                if(bookOptionString != null) {
-                    userProfile.UserCommonOperation(tempUserName, operationString, bookOptionString);
-                }
-                break;
-            case 3:
-                operationString = "Return_Book";
-                System.out.println("Enter the option to return book 1. Inferno 2. Deception Point 3. The Lost Symbol 4. Mein Kamf 5. Open");
-                bookOption = scanIn.nextInt();
-                switch(bookOption){
-                    case 1: bookOptionString = "Inferno"; break;
-                    case 2: bookOptionString = "Deception Point"; break;
-                    case 3: bookOptionString = "The Lost Symbol"; break;
-                    case 4:bookOptionString = "Mein Kamf"; break;
-                    case 5: bookOptionString = "Open"; break;
-                    default: System.out.println("You have entered wrong book option"); break;
-                }
-                if(bookOptionString !=null) {
-                    userProfile.UserCommonOperation(tempUserName, operationString,bookOptionString);
-                }
-                break;
-            default: System.out.println("You have entered wrong option"); break;
-        }
 
-    }else{
-            //userProfile.UserCommonOperation("sanket.achari", "Issue_Book","Opene");
-            //userProfile.UserCommonOperation("sanket.achari", "Issue_Book","The Lost Symbol");
-            //userProfile.UserCommonOperation("sanket.achari", "Get_User_Status",null);
-            //userProfile.UserCommonOperation("vishwajeet.vatharkar", "Issue_Book","Collosal");
-            //userProfile.UserCommonOperation("sandesh.achari", "Return_Book","Inferno");
-            //userProfile.UserCommonOperation("sanket.achari", "Return_Book","The Lost Symbol");
-            userProfile.UserCommonOperation("vishwajeet.vatharkar", "Issue_Book","Inferno");
+        String SANDESH = new String("SANDESH");
+        String SANKET = new String("SANKET");
+        String VISHWAJEET = new String("VISHWAJEET");
+
+        Connection conn = null;
+        Statement stmt = null;
+        try {
+            Class.forName("org.sqlite.JDBC");
+            conn = DriverManager.getConnection("jdbc:sqlite:test.db");
+            stmt = conn.createStatement();
+            stmt.setQueryTimeout(30); // Set Timeout of 30 sec
+
+            stmt.executeUpdate("drop table if exists UserInfo");
+            stmt.executeUpdate("create table UserInfo (UserId varchar(255), Password varchar(255), Name Object, primary key(UserId))");
+            stmt.executeUpdate("insert into UserInfo values('sandesh.achari', 'sandy'," + "'" + SANDESH + "'" + ")");
+            stmt.executeUpdate("insert into UserInfo values('sanket.achari', 'shanky'," + "'" + SANKET + "'" + ")");
+            stmt.executeUpdate("insert into UserInfo values('vishwajeet.vatharkar', 'khandya'," + "'" + VISHWAJEET + "'" + ")");
+
+            stmt.executeUpdate("drop table if exists UserBooksInfo");
+            stmt.executeUpdate("create table UserBooksInfo (UserId varchar(255), Book1 varchar(255), Book2 varchar(255), Book3 varchar(255), Book4 varchar(255), Book5 varchar(255),foreign key (UserId) references UserInfo (UserId))");
+            stmt.executeUpdate("insert into UserBooksInfo values('sandesh.achari', 'Inferno', 'Mein Kamf', 'The Lost Symbol', 'Open', 'Deception Point')");
+            stmt.executeUpdate("insert into UserBooksInfo values('sanket.achari', 'The Lost Symbol' , 'Open'," + null + "," + null + "," + null + ")");
+            stmt.executeUpdate("insert into UserBooksInfo values('vishwajeet.vatharkar', 'Open' , 'Inferno', 'The Lost Symbol'," + null + "," + null + ")");
+
+            System.out.println("Enter the option: 1. Existing User 2. New User");
+            Scanner scanIn = new Scanner(System.in);
+            int firstOperation = scanIn.nextInt();
+            if (firstOperation == 2) {
+                String newUserId, newUserPassword = null;
+                String newUserObject = new String();
+                System.out.println("Enter UserId");
+                newUserId = scanIn.next();
+                boolean passwordVerified = false;
+                while (passwordVerified == false) {
+                    System.out.println("Enter Password");
+                    newUserPassword = scanIn.next();
+                    System.out.println("Enter Password again to verify");
+                    if (scanIn.next().equals(newUserPassword)) {
+                        passwordVerified = true;
+                    }
+                }
+                System.out.println("Enter Object");
+                newUserObject = scanIn.next();
+                userProfile.RegisterNewUser(newUserId, newUserPassword, newUserObject);
+                firstOperation = 1;
+            }
+
+
+            if (firstOperation == 1) {
+                System.out.println("Enter your UserId");
+                tempUserName = scanIn.next();
+                ResultSet getUserId = stmt.executeQuery("select UserId from UserBooksInfo");
+                while (getUserId.next()) {
+                    if (getUserId.getString("UserId").equals(tempUserName)) {
+                        userExist = true;
+                    }
+                }
+                if (userExist) {
+                    System.out.println("Enter your password");
+                    String tempUserPassword = scanIn.next();
+                    ResultSet getUserPassword = stmt.executeQuery("select Password from UserInfo");
+                    while (getUserPassword.next()) {
+                        if (getUserPassword.getString("Password").equals(tempUserPassword)) {
+                            passwordMatched = true;
+                        }
+                    }
+                    if (passwordMatched) {
+                        System.out.println("Enter the option 1.Get Status 2. Issue Book 3. Return Book 4.Change Password  5.Delete Account");
+                        operation = scanIn.nextInt();
+                        switch (operation) {
+                            case 1:
+                                userProfile.GetUserStatus(tempUserName);
+                                break;
+                            case 2:
+                                System.out.println("Enter the option to issue book 1. Inferno 2. Deception Point 3. The Lost Symbol 4. Mein Kamf 5. Open");
+                                bookOption = scanIn.nextInt();
+                                switch (bookOption) {
+                                    case 1:
+                                        bookOptionString = "Inferno";
+                                        break;
+                                    case 2:
+                                        bookOptionString = "Deception Point";
+                                        break;
+                                    case 3:
+                                        bookOptionString = "The Lost Symbol";
+                                        break;
+                                    case 4:
+                                        bookOptionString = "Mein Kamf";
+                                        break;
+                                    case 5:
+                                        bookOptionString = "Open";
+                                        break;
+                                    default:
+                                        System.out.println("You have entered wrong book option");
+                                        break;
+                                }
+                                if (bookOptionString != null) {
+                                    userProfile.IssueBook(tempUserName, bookOptionString);
+                                }
+                                break;
+                            case 3:
+                                System.out.println("Enter the option to return book 1. Inferno 2. Deception Point 3. The Lost Symbol 4. Mein Kamf 5. Open");
+                                bookOption = scanIn.nextInt();
+                                switch (bookOption) {
+                                    case 1:
+                                        bookOptionString = "Inferno";
+                                        break;
+                                    case 2:
+                                        bookOptionString = "Deception Point";
+                                        break;
+                                    case 3:
+                                        bookOptionString = "The Lost Symbol";
+                                        break;
+                                    case 4:
+                                        bookOptionString = "Mein Kamf";
+                                        break;
+                                    case 5:
+                                        bookOptionString = "Open";
+                                        break;
+                                    default:
+                                        System.out.println("You have entered wrong book option");
+                                        break;
+                                }
+                                if (bookOptionString != null) {
+                                    userProfile.ReturnBook(tempUserName, bookOptionString);
+                                }
+                                break;
+                            case 4:
+                                userProfile.ChangeUserPassword(tempUserName);
+                                break;
+                            case 5:
+                                userProfile.DeleteUser(tempUserName);
+                                break;
+                            default:
+                                System.out.println("You have entered wrong option");
+                                break;
+                        }
+                    } else {
+                        System.out.println("Entered password is incorrect");
+                    }
+                } else {
+                    System.out.println("You are not registered.");
+                }
+            } else {
+                System.out.println("You have entered incorrect option. Try again!");
+            }
+        }
+            catch(SQLException se){
+                System.out.println("Entered in SQLException");
+                se.printStackTrace();
+            }catch(ClassNotFoundException ce){
+                System.out.println("Entered in ClassNotFoundException");
+                ce.printStackTrace();
+            }
         }
     }
-
-}
